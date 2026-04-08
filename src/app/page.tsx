@@ -95,9 +95,9 @@ export default function Home() {
   const atRiskGoals = goals.filter((g) => {
     if (g.status === "complete") return false;
     if (g.status === "at_risk" || g.status === "missed") return true;
-    // Also include overdue goals (deadline passed but not complete/missed)
+    // Also include overdue goals (deadline passed but still active)
     const deadline = new Date(g.deadline);
-    return deadline < now && g.status !== "missed";
+    return deadline < now;
   });
   const completedGoals = goals.filter((g) => g.status === "complete");
 
