@@ -1,0 +1,48 @@
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+let _supabase: SupabaseClient | null = null;
+
+export function getSupabase(): SupabaseClient {
+  if (_supabase) return _supabase;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    );
+  }
+
+  _supabase = createClient(url, key);
+  return _supabase;
+}
+
+// Keep backward-compat export but lazy
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (getSupabase() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
+
+export type Goal = {
+  id: string;
+  team: string;
+  goal: string;
+  owner: string;
+  deadline: string;
+  status: "on_track" | "at_risk" | "complete" | "missed";
+  priority: "P0" | "P1" | "P2";
+  progress: number;
+  notes: string | null;
+  last_updated: string;
+  created_at: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  tools_used: boolean;
+  created_at: string;
+};
