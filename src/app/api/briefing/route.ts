@@ -16,12 +16,27 @@ export async function GET() {
     });
   }
 
-  const goalsContext = goals
+  // For briefing, only send goals that need attention (at_risk, missed, due within 7 days, stale)
+  const now = new Date();
+  const relevantGoals = goals.filter((g: { status: string; deadline: string; last_updated: string }) => {
+    if (g.status === "at_risk" || g.status === "missed") return true;
+    const daysUntil = (new Date(g.deadline).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysUntil <= 7 && g.status !== "complete") return true;
+    const daysSinceUpdate = (now.getTime() - new Date(g.last_updated).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceUpdate > 4 && g.status !== "complete") return true;
+    return false;
+  });
+
+  // Also include a summary of what's on track
+  const onTrackCount = goals.filter((g: { status: string }) => g.status === "on_track").length;
+  const completeCount = goals.filter((g: { status: string }) => g.status === "complete").length;
+
+  const goalsContext = relevantGoals
     .map(
       (g) =>
-        `- "${g.goal}" | Team: ${g.team} | Owner: ${g.owner} | Status: ${g.status} | Priority: ${g.priority} | Progress: ${g.progress}% | Deadline: ${g.deadline} | Last updated: ${g.last_updated} | Category: ${g.category || "general"}`
+        `- "${g.goal}" | ${g.team} | ${g.owner} | ${g.status} | ${g.priority} | ${g.progress}% | Due: ${g.deadline} | Category: ${g.category || "general"}`
     )
-    .join("\n");
+    .join("\n") + `\n\nSummary: ${goals.length} total goals, ${onTrackCount} on track, ${completeCount} complete, ${relevantGoals.length} needing attention.`;
 
   const complianceIssues = goals.filter(
     (g: { category: string | null; status: string }) =>

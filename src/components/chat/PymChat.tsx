@@ -41,10 +41,11 @@ export function PymChat({ goals, onGoalsChanged }: PymChatProps) {
     setInput("");
     setLoading(true);
 
+    // Send compact goal context to save tokens — only essential fields
     const goalsContext = goals
       .map(
         (g) =>
-          `[${g.id}] "${g.goal}" | Team: ${g.team} | Owner: ${g.owner} | Status: ${g.status} | Priority: ${g.priority} | Progress: ${g.progress}% | Deadline: ${g.deadline} | Category: ${g.category || "general"} | Notes: ${g.notes || "none"}`
+          `[${g.id}] "${g.goal}" | ${g.team} | ${g.owner} | ${g.status} | ${g.priority} | ${g.progress}% | ${g.deadline}${g.category === "compliance" ? " | COMPLIANCE" : ""}${g.notes ? ` | ${g.notes.split("\n").pop()?.substring(0, 80)}` : ""}`
       )
       .join("\n");
 

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       tools: TOOL_DEFINITIONS,
       tool_choice: "auto",
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 1024,
     });
 
     const message = response.choices[0].message;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
           ...toolResults,
         ],
         temperature: 0.7,
-        max_tokens: 2048,
+        max_tokens: 1024,
       });
 
       const finalContent =
