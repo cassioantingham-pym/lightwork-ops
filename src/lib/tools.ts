@@ -9,6 +9,8 @@ export async function executeToolCall(
       return createGoal(args);
     case "update_goal":
       return updateGoal(args);
+    case "delete_goal":
+      return deleteGoal(args);
     case "flag_risk":
       return flagRisk(args);
     case "generate_weekly_summary":
@@ -42,7 +44,7 @@ async function createGoal(
   }
 
   return {
-    result: `Goal created: "${data.goal}" for ${data.team}, owned by ${data.owner}, due ${data.deadline}. Priority: ${data.priority}.`,
+    result: `Goal created: "${data.goal}" for ${data.team}, owned by ${data.owner}, due ${data.deadline}, priority ${data.priority}.`,
     goalChanged: true,
   };
 }
@@ -50,11 +52,19 @@ async function createGoal(
 async function updateGoal(
   args: Record<string, unknown>
 ): Promise<{ result: string; goalChanged: boolean }> {
-  const updates: Record<string, unknown> = { last_updated: new Date().toISOString() };
-  if (args.status) updates.status = args.status;
+  const updates: Record<string, unknown> = {
+    last_updated: new Date().toISOString(),
+  };
+
+  // Map all possible fields
+  if (args.status !== undefined) updates.status = args.status;
   if (args.progress !== undefined) updates.progress = args.progress;
-  if (args.notes) updates.notes = args.notes;
-  if (args.deadline) updates.deadline = args.deadline;
+  if (args.notes !== undefined) updates.notes = args.notes;
+  if (args.deadline !== undefined) updates.deadline = args.deadline;
+  if (args.owner !== undefined) updates.owner = args.owner;
+  if (args.team !== undefined) updates.team = args.team;
+  if (args.priority !== undefined) updates.priority = args.priority;
+  if (args.goal !== undefined) updates.goal = args.goal;
 
   const { data, error } = await supabase
     .from("goals")
@@ -67,10 +77,50 @@ async function updateGoal(
     return { result: `Error updating goal: ${error.message}`, goalChanged: false };
   }
 
+  // Build a human-readable summary of what changed
+  const changes: string[] = [];
+  if (args.status) changes.push(`status → ${data.status}`);
+  if (args.progress !== undefined) changes.push(`progress → ${data.progress}%`);
+  if (args.owner) changes.push(`owner → ${data.owner}`);
+  if (args.team) changes.push(`team → ${data.team}`);
+  if (args.priority) changes.push(`priority → ${data.priority}`);
+  if (args.deadline) changes.push(`deadline → ${data.deadline}`);
+  if (args.goal) changes.push(`title → "${data.goal}"`);
+  if (args.notes) changes.push(`notes updated`);
+
   return {
-    result: `Updated "${data.goal}": status=${data.status}, progress=${data.progress}%.`,
+    result: `Updated "${data.goal}": ${changes.join(", ")}.`,
     goalChanged: true,
   };
+}
+
+async function deleteGoal(
+  args: Record<string, unknown>
+): Promise<{ result: string; goalChanged: boolean }> {
+  // Fetch the goal first so we can confirm what was deleted
+  const { data: goal } = await supabase
+    .from("goals")
+    .select("goal, team, owner")
+    .eq("id", args.goal_id)
+    .single();
+
+  const { error } = await supabase
+    .from("goals")
+    .delete()
+    .eq("id", args.goal_id);
+
+  if (error) {
+    return { result: `Error deleting goal: ${error.message}`, goalChanged: false };
+  }
+
+  if (goal) {
+    return {
+      result: `Deleted "${goal.goal}" (${goal.team}, ${goal.owner}). It's gone.`,
+      goalChanged: true,
+    };
+  }
+
+  return { result: "Goal deleted.", goalChanged: true };
 }
 
 async function flagRisk(
@@ -117,12 +167,14 @@ async function generateWeeklySummary(): Promise<{
   const atRisk = goals.filter((g: Goal) => g.status === "at_risk");
   const stale = goals.filter((g: Goal) => {
     const updated = new Date(g.last_updated);
-    const daysSince = (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSince =
+      (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
     return daysSince > 4 && g.status !== "complete" && g.status !== "missed";
   });
   const upcoming = goals.filter((g: Goal) => {
     const deadline = new Date(g.deadline);
-    const daysUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    const daysUntil =
+      (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     return daysUntil >= 0 && daysUntil <= 7 && g.status !== "complete";
   });
 
@@ -144,17 +196,18 @@ async function generateWeeklySummary(): Promise<{
   summary += `\n### 🔥 At Risk (${atRisk.length})\n`;
   if (atRisk.length > 0) {
     atRisk.forEach((g: Goal) => {
-      summary += `- **${g.goal}** — ${g.team}, owned by ${g.owner}. Due: ${g.deadline}. ${g.notes || ""}\n`;
+      summary += `- **${g.goal}** — ${g.team}, ${g.owner}. Due: ${g.deadline}. ${g.notes || ""}\n`;
     });
   } else {
-    summary += "- Nothing at risk. Nice.\n";
+    summary += "- Nothing at risk.\n";
   }
 
   summary += `\n### ⏸ Stalled (${stale.length})\n`;
   if (stale.length > 0) {
     stale.forEach((g: Goal) => {
       const days = Math.floor(
-        (now.getTime() - new Date(g.last_updated).getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - new Date(g.last_updated).getTime()) /
+          (1000 * 60 * 60 * 24)
       );
       summary += `- **${g.goal}** — ${g.team}, ${g.owner}. No update in ${days} days.\n`;
     });
@@ -162,7 +215,7 @@ async function generateWeeklySummary(): Promise<{
     summary += "- All goals have recent updates.\n";
   }
 
-  summary += `\n### 📅 Upcoming Deadlines (next 7 days)\n`;
+  summary += `\n### 📅 Upcoming (next 7 days)\n`;
   if (upcoming.length > 0) {
     upcoming.forEach((g: Goal) => {
       summary += `- **${g.goal}** — ${g.team}, due ${g.deadline} (${g.status.replace("_", " ")})\n`;
@@ -185,7 +238,7 @@ async function generateWeeklySummary(): Promise<{
   summary += `\n### 📊 Overall\n`;
   summary += `- **${goals.length}** total goals, **${totalActive.length}** active\n`;
   summary += `- Average progress: **${avgProgress}%**\n`;
-  summary += `- Teams tracked: ${[...new Set(goals.map((g: Goal) => g.team))].join(", ")}\n`;
+  summary += `- Teams: ${[...new Set(goals.map((g: Goal) => g.team))].join(", ")}\n`;
 
   return { result: summary, goalChanged: false };
 }
