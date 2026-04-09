@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { Goal } from "@/lib/supabase";
 
 interface ChatMessage {
@@ -138,7 +139,13 @@ export function PymChat({ goals, onGoalsChanged }: PymChatProps) {
                   : "bg-white/80 backdrop-blur-sm border border-gray-200/40 text-[#20282d] rounded-bl-md shadow-sm"
               }`}
             >
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              {msg.role === "assistant" ? (
+                <div className="pym-markdown">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap">{msg.content}</div>
+              )}
             </div>
           </div>
         ))}

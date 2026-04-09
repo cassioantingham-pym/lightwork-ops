@@ -128,3 +128,63 @@
     @apply font-sans;
   }
 }
+
+/* Pym chat markdown rendering */
+.pym-markdown {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pym-markdown p {
+  margin: 0 0 8px 0;
+}
+.pym-markdown p:last-child {
+  margin-bottom: 0;
+}
+.pym-markdown strong {
+  font-weight: 600;
+}
+.pym-markdown em {
+  font-style: italic;
+}
+.pym-markdown ul,
+.pym-markdown ol {
+  margin: 4px 0 8px 0;
+  padding-left: 18px;
+}
+.pym-markdown li {
+  margin: 2px 0;
+}
+.pym-markdown h1,
+.pym-markdown h2,
+.pym-markdown h3 {
+  font-weight: 600;
+  margin: 10px 0 4px 0;
+}
+.pym-markdown h1 { font-size: 15px; }
+.pym-markdown h2 { font-size: 14px; }
+.pym-markdown h3 { font-size: 13px; }
+.pym-markdown code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.pym-markdown pre {
+  background: rgba(0,0,0,0.06);
+  padding: 8px 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.pym-markdown blockquote {
+  border-left: 3px solid #1AA0E6;
+  padding-left: 10px;
+  margin: 6px 0;
+  color: #575757;
+}
+.pym-markdown hr {
+  border: none;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  margin: 8px 0;
+}

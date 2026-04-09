@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface PymBriefingProps {
   onChipClick: (chip: string) => void;
@@ -45,8 +46,8 @@ export function PymBriefing({ onChipClick }: PymBriefingProps) {
         </div>
       ) : (
         <>
-          <div className="text-[13.5px] text-[#20282d] leading-[1.65] mb-3">
-            {briefing}
+          <div className="text-[13.5px] text-[#20282d] leading-[1.65] mb-3 pym-markdown">
+            <ReactMarkdown>{briefing}</ReactMarkdown>
           </div>
           <div className="flex gap-2 flex-wrap">
             {chips.map((chip) => (
