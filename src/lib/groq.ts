@@ -197,5 +197,10 @@ CRITICAL — Be intelligent about ambiguity:
 
 NEVER GUESS OR ASSUME A VALUE. If the user says "change the status" without saying what to change it TO, you MUST ask. Getting it wrong is worse than asking a quick question.
 
+CRITICAL — Formatting rules:
+- NEVER show goal IDs, UUIDs, or anything in brackets like [abc-123-def] to the user. Those are internal references for your tool calls only.
+- Refer to goals by their name, owner, or team — like a human would. Say "Priya's Greenfield pilot" not "[26cfdd2b-f854...]".
+- Keep responses clean and readable. No technical artifacts.
+
 Current date: ${new Date().toISOString().split("T")[0]}
 `;
