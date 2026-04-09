@@ -15,9 +15,9 @@ interface PymChatProps {
 
 const QUICK_PROMPTS = [
   "What's at risk?",
+  "Compliance check",
   "Weekly summary",
-  "Add a goal",
-  "Flag a deadline",
+  "Client pipeline",
 ];
 
 export function PymChat({ goals, onGoalsChanged }: PymChatProps) {
@@ -44,7 +44,7 @@ export function PymChat({ goals, onGoalsChanged }: PymChatProps) {
     const goalsContext = goals
       .map(
         (g) =>
-          `[${g.id}] "${g.goal}" | Team: ${g.team} | Owner: ${g.owner} | Status: ${g.status} | Priority: ${g.priority} | Progress: ${g.progress}% | Deadline: ${g.deadline}`
+          `[${g.id}] "${g.goal}" | Team: ${g.team} | Owner: ${g.owner} | Status: ${g.status} | Priority: ${g.priority} | Progress: ${g.progress}% | Deadline: ${g.deadline} | Category: ${g.category || "general"} | Notes: ${g.notes || "none"}`
       )
       .join("\n");
 

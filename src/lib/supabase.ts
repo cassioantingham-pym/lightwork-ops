@@ -37,6 +37,7 @@ export type Goal = {
   notes: string | null;
   last_updated: string;
   created_at: string;
+  category: string | null;
 };
 
 export type ChatMessage = {

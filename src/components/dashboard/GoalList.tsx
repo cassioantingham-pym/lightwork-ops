@@ -253,6 +253,13 @@ function GoalRow({
           {goal.priority}
         </span>
 
+        {/* Compliance indicator */}
+        {goal.category === "compliance" && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200/60 shrink-0">
+            🛡 COMPLIANCE
+          </span>
+        )}
+
         {/* Title + meta */}
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium text-[#0f042d] truncate">
