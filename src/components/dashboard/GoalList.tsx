@@ -275,6 +275,11 @@ function GoalRow({
               {formatTimeAgo(goal.last_updated)}
             </span>
           </div>
+          {goal.notes && (
+            <div className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[400px] italic">
+              💬 {goal.notes.split("\n").pop()}
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}

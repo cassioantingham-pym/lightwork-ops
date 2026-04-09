@@ -52,6 +52,24 @@ async function createGoal(
 async function updateGoal(
   args: Record<string, unknown>
 ): Promise<{ result: string; goalChanged: boolean }> {
+  // If notes are being updated, fetch existing notes to append
+  let notesValue: string | undefined;
+  if (args.notes !== undefined) {
+    const { data: existing } = await supabase
+      .from("goals")
+      .select("notes")
+      .eq("id", args.goal_id)
+      .single();
+
+    const existingNotes = existing?.notes || "";
+    const newNote = args.notes as string;
+
+    // Append new note on a new line, don't overwrite
+    notesValue = existingNotes
+      ? `${existingNotes}\n${newNote}`
+      : newNote;
+  }
+
   const updates: Record<string, unknown> = {
     last_updated: new Date().toISOString(),
   };
@@ -59,7 +77,7 @@ async function updateGoal(
   // Map all possible fields
   if (args.status !== undefined) updates.status = args.status;
   if (args.progress !== undefined) updates.progress = args.progress;
-  if (args.notes !== undefined) updates.notes = args.notes;
+  if (notesValue !== undefined) updates.notes = notesValue;
   if (args.deadline !== undefined) updates.deadline = args.deadline;
   if (args.owner !== undefined) updates.owner = args.owner;
   if (args.team !== undefined) updates.team = args.team;
@@ -126,11 +144,23 @@ async function deleteGoal(
 async function flagRisk(
   args: Record<string, unknown>
 ): Promise<{ result: string; goalChanged: boolean }> {
+  // Fetch existing notes to append
+  const { data: existing } = await supabase
+    .from("goals")
+    .select("notes")
+    .eq("id", args.goal_id)
+    .single();
+
+  const existingNotes = existing?.notes || "";
+  const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const newNote = `${date} — Pym: ⚠ Flagged at risk. ${args.reason}`;
+  const notes = existingNotes ? `${existingNotes}\n${newNote}` : newNote;
+
   const { data, error } = await supabase
     .from("goals")
     .update({
       status: "at_risk",
-      notes: `⚠ Flagged at risk: ${args.reason}`,
+      notes,
       last_updated: new Date().toISOString(),
     })
     .eq("id", args.goal_id)
