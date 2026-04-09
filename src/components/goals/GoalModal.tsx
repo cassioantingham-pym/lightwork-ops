@@ -84,7 +84,7 @@ export function GoalModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl">
         <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-[14px] font-semibold text-[#0f042d]">
             {goal ? "Edit goal" : "Add goal"}
@@ -207,14 +207,56 @@ export function GoalModal({
             />
           </div>
 
+          {/* Notes history — Pym insights + manual notes */}
+          {goal && form.notes && (
+            <div>
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                ✦ Activity & Insights
+              </label>
+              <div className="bg-[#F8F9FB] border border-gray-200/60 rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2">
+                {form.notes.split("\n").filter(Boolean).map((note, i) => {
+                  const isPym = note.includes("Pym:") || note.includes("Pym —");
+                  const isFlag = note.includes("⚠") || note.includes("Flagged");
+                  return (
+                    <div
+                      key={i}
+                      className={`text-[12px] leading-relaxed px-2.5 py-1.5 rounded-md ${
+                        isPym
+                          ? "bg-[#f0f9ff] border border-[#bae6fd]/40 text-[#0075AD]"
+                          : isFlag
+                          ? "bg-red-50 border border-red-200/40 text-red-600"
+                          : "bg-white border border-gray-100 text-[#20282d]"
+                      }`}
+                    >
+                      {isPym && (
+                        <span className="inline-block w-4 h-4 bg-gradient-to-br from-[#1AA0E6] to-[#0075AD] rounded text-white text-[8px] font-bold text-center leading-4 mr-1.5 align-middle">✦</span>
+                      )}
+                      {note}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Manual note input */}
           <div>
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">
-              Notes
+              Add a note
             </label>
             <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Optional notes..."
+              value={goal ? "" : form.notes}
+              onChange={(e) => {
+                if (goal) {
+                  // For existing goals, we'll append on save
+                  const existing = form.notes || "";
+                  const newNote = e.target.value;
+                  setForm({ ...form, notes: existing ? `${existing}\n${newNote}` : newNote });
+                } else {
+                  setForm({ ...form, notes: e.target.value });
+                }
+              }}
+              placeholder={goal ? "Add a note to this goal..." : "Optional notes..."}
               rows={2}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-[#0f042d] outline-none focus:border-[#1AA0E6] focus:ring-1 focus:ring-[#1AA0E6]/20 resize-none"
             />
