@@ -1,4 +1,4 @@
-import { groq, SYSTEM_PROMPT } from "@/lib/groq";
+import { anthropic, MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
@@ -16,38 +16,64 @@ export async function GET() {
     });
   }
 
-  // For briefing, only send goals that need attention (at_risk, missed, due within 7 days, stale)
+  // For briefing, only send goals that need attention
   const now = new Date();
-  const relevantGoals = goals.filter((g: { status: string; deadline: string; last_updated: string }) => {
-    if (g.status === "at_risk" || g.status === "missed") return true;
-    const daysUntil = (new Date(g.deadline).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysUntil <= 7 && g.status !== "complete") return true;
-    const daysSinceUpdate = (now.getTime() - new Date(g.last_updated).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceUpdate > 4 && g.status !== "complete") return true;
-    return false;
-  });
+  const relevantGoals = goals.filter(
+    (g: {
+      status: string;
+      deadline: string;
+      last_updated: string;
+    }) => {
+      if (g.status === "at_risk" || g.status === "missed") return true;
+      const daysUntil =
+        (new Date(g.deadline).getTime() - now.getTime()) /
+        (1000 * 60 * 60 * 24);
+      if (daysUntil <= 7 && g.status !== "complete") return true;
+      const daysSinceUpdate =
+        (now.getTime() - new Date(g.last_updated).getTime()) /
+        (1000 * 60 * 60 * 24);
+      if (daysSinceUpdate > 4 && g.status !== "complete") return true;
+      return false;
+    }
+  );
 
-  // Also include a summary of what's on track
-  const onTrackCount = goals.filter((g: { status: string }) => g.status === "on_track").length;
-  const completeCount = goals.filter((g: { status: string }) => g.status === "complete").length;
-
-  const goalsContext = relevantGoals
-    .map(
-      (g) =>
-        `- "${g.goal}" | ${g.team} | ${g.owner} | ${g.status} | ${g.priority} | ${g.progress}% | Due: ${g.deadline} | Category: ${g.category || "general"}`
-    )
-    .join("\n") + `\n\nSummary: ${goals.length} total goals, ${onTrackCount} on track, ${completeCount} complete, ${relevantGoals.length} needing attention.`;
+  const onTrackCount = goals.filter(
+    (g: { status: string }) => g.status === "on_track"
+  ).length;
+  const completeCount = goals.filter(
+    (g: { status: string }) => g.status === "complete"
+  ).length;
 
   const complianceIssues = goals.filter(
     (g: { category: string | null; status: string }) =>
-      g.category === "compliance" && (g.status === "missed" || g.status === "at_risk")
+      g.category === "compliance" &&
+      (g.status === "missed" || g.status === "at_risk")
   );
 
+  const goalsContext =
+    relevantGoals
+      .map(
+        (g: {
+          goal: string;
+          team: string;
+          owner: string;
+          status: string;
+          priority: string;
+          progress: number;
+          deadline: string;
+          category: string | null;
+        }) =>
+          `- "${g.goal}" | ${g.team} | ${g.owner} | ${g.status} | ${g.priority} | ${g.progress}% | Due: ${g.deadline} | Category: ${g.category || "general"}`
+      )
+      .join("\n") +
+    `\n\nSummary: ${goals.length} total goals, ${onTrackCount} on track, ${completeCount} complete, ${relevantGoals.length} needing attention.`;
+
   try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 512,
+      system: SYSTEM_PROMPT,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
           content: `Generate a morning briefing for the Founder's Associate at LightWork AI. Use your warm, conversational personality. 3-4 sentences max.
@@ -60,23 +86,24 @@ Priorities for the briefing:
 
 ${complianceIssues.length > 0 ? `⚠ COMPLIANCE ALERT: ${complianceIssues.length} compliance item(s) need urgent attention.` : ""}
 
-Also suggest 3-4 short action chip labels (under 30 chars each). Return JSON:
+Also suggest 3-4 short action chip labels (under 30 chars each). Return ONLY valid JSON, no other text:
 {
   "briefing": "your briefing text here",
   "chips": ["chip 1", "chip 2", "chip 3"]
 }
 
-Current goals:
+Current goals needing attention:
 ${goalsContext}`,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 512,
-      response_format: { type: "json_object" },
     });
 
-    const content = response.choices[0].message.content || "{}";
-    const parsed = JSON.parse(content);
+    const textBlock = response.content.find((b) => b.type === "text");
+    const content = textBlock && textBlock.type === "text" ? textBlock.text : "{}";
+
+    // Extract JSON from response (Claude may wrap it in markdown)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
     return NextResponse.json({
       briefing: parsed.briefing || "All clear for now.",
